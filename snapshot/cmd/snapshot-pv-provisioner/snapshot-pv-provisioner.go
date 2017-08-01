@@ -34,11 +34,11 @@ import (
 	"github.com/kubernetes-incubator/external-storage/snapshot/pkg/volume/cinder"
 	"github.com/kubernetes-incubator/external-storage/snapshot/pkg/volume/gce_pd"
 	"github.com/kubernetes-incubator/external-storage/snapshot/pkg/volume/hostpath"
+	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/api/core/v1"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -105,7 +105,7 @@ func (p *snapshotProvisioner) snapshotRestore(snapshotName string, snapshotData 
 	if err != nil && pv == nil {
 		glog.Warningf("failed to snapshot %#v, err: %v", *spec, err)
 	} else {
-		glog.Infof("snapshot %#v to snap %#v", *spec, *pvSrc)
+		glog.Infof("snapshot %+v to snap %+v", spec, pvSrc)
 		return pvSrc, labels, nil
 	}
 
