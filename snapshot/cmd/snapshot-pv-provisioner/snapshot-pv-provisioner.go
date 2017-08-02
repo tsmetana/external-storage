@@ -74,11 +74,11 @@ func (p *snapshotProvisioner) snapshotRestore(snapshotName string, snapshotData 
 	src := &snapshotData.Spec.VolumeSnapshotDataSource
 	volumeType := crdv1.GetSupportedVolumeFromSnapshotDataSource(src)
 	if len(volumeType) == 0 {
-		return nil, nil, fmt.Errorf("unsupported volume type: %#v", src)
+		return nil, nil, fmt.Errorf("unsupported snapshot source: %#v", src)
 	}
 	plugin, ok := volumePlugins[volumeType]
 	if !ok {
-		return nil, nil, fmt.Errorf("%s is not supported volume for %#v", volumeType, src)
+		return nil, nil, fmt.Errorf("unsupported snapshot plugin: %s", volumeType)
 	}
 
 	// restore snapshot
@@ -114,7 +114,7 @@ func (p *snapshotProvisioner) Provision(options controller.VolumeOptions) (*v1.P
 	}
 	// FIXME: should also check if any VolumeSnapshotData points to this VolumeSnapshot
 	if len(snapshot.Spec.SnapshotDataName) == 0 {
-		return nil, fmt.Errorf("VolumeSnapshot %s is not bound to any VolumeSnapshotData", snapshotName, err)
+		return nil, fmt.Errorf("VolumeSnapshot %s is not bound to any VolumeSnapshotData", snapshotName)
 	}
 	var snapshotData crdv1.VolumeSnapshotData
 	err = p.crdclient.Get().
@@ -124,9 +124,9 @@ func (p *snapshotProvisioner) Provision(options controller.VolumeOptions) (*v1.P
 		Do().Into(&snapshotData)
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to retrieve VolumeSnapshotData %s: %v", snapshot.Spec.SnapshotDataName, err)
+		return nil, fmt.Errorf("failed to retrieve VolumeSnapshotData %s for VolumeSnapshot %s: %v", snapshot.Spec.SnapshotDataName, snapshotName, err)
 	}
-	glog.V(3).Infof("restore from VolumeSnapshotData %s", snapshot.Spec.SnapshotDataName)
+	glog.V(3).Infof("starting restore from VolumeSnapshotData %s", snapshot.Spec.SnapshotDataName)
 
 	pvSrc, labels, err := p.snapshotRestore(snapshot.Spec.SnapshotDataName, snapshotData, options)
 	if err != nil || pvSrc == nil {
@@ -158,8 +158,7 @@ func (p *snapshotProvisioner) Provision(options controller.VolumeOptions) (*v1.P
 		}
 	}
 
-	glog.Infof("successfully created Snapshot share %#v", pv)
-
+	glog.Infof("successfully created PV %q from snapshot %q", pv.Name, snapshotName)
 	return pv, nil
 }
 
