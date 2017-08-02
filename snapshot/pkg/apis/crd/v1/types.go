@@ -238,6 +238,19 @@ func GetSupportedVolumeFromPVSpec(spec *core_v1.PersistentVolumeSpec) string {
 	return ""
 }
 
+func GetSupportedVolumeFromSnapshotDataSource(src *VolumeSnapshotDataSource) string {
+	if src.HostPath != nil {
+		return "hostPath"
+	}
+	if src.AWSElasticBlockStore != nil {
+		return "aws_ebs"
+	}
+	if src.GCEPersistentDiskSnapshot != nil {
+		return "gce-pd"
+	}
+	return ""
+}
+
 // Required to satisfy Object interface
 func (v *VolumeSnapshotData) GetObjectKind() schema.ObjectKind {
 	return &v.TypeMeta
