@@ -69,47 +69,27 @@ func newSnapshotProvisioner(client kubernetes.Interface, crdclient *rest.RESTCli
 
 var _ controller.Provisioner = &snapshotProvisioner{}
 
-func (p *snapshotProvisioner) getPVFromVolumeSnapshotDataSpec(snapshotDataSpec *crdv1.VolumeSnapshotDataSpec) (*v1.PersistentVolume, error) {
-	if snapshotDataSpec.PersistentVolumeRef == nil {
-		return nil, fmt.Errorf("VolumeSnapshotDataSpec is not bound to any PV")
-	}
-	pvName := snapshotDataSpec.PersistentVolumeRef.Name
-	if pvName == "" {
-		return nil, fmt.Errorf("The PV name is not specified in snapshotdata %#v", *snapshotDataSpec)
-	}
-	pv, err := p.client.CoreV1().PersistentVolumes().Get(pvName, metav1.GetOptions{})
-	if err != nil {
-		return nil, fmt.Errorf("Failed to retrieve PV %s from the API server: %q", pvName, err)
-	}
-	return pv, nil
-}
-
 func (p *snapshotProvisioner) snapshotRestore(snapshotName string, snapshotData crdv1.VolumeSnapshotData, options controller.VolumeOptions) (*v1.PersistentVolumeSource, map[string]string, error) {
-	// validate the PV supports snapshot and restore
-	spec := &snapshotData.Spec
-	pv, err := p.getPVFromVolumeSnapshotDataSpec(spec)
-	if err != nil {
-		return nil, nil, err
-	}
-	volumeType := crdv1.GetSupportedVolumeFromPVSpec(&pv.Spec)
+	// Find the right plugin
+	src := &snapshotData.Spec.VolumeSnapshotDataSource
+	volumeType := crdv1.GetSupportedVolumeFromSnapshotDataSource(src)
 	if len(volumeType) == 0 {
-		return nil, nil, fmt.Errorf("unsupported volume type found in PV %#v", *spec)
+		return nil, nil, fmt.Errorf("unsupported volume type: %#v", src)
 	}
 	plugin, ok := volumePlugins[volumeType]
 	if !ok {
-		return nil, nil, fmt.Errorf("%s is not supported volume for %#v", volumeType, *spec)
+		return nil, nil, fmt.Errorf("%s is not supported volume for %#v", volumeType, src)
 	}
 
 	// restore snapshot
 	pvSrc, labels, err := plugin.SnapshotRestore(&snapshotData, options.PVC, options.PVName, options.Parameters)
-	if err != nil && pv == nil {
-		glog.Warningf("failed to snapshot %#v, err: %v", *spec, err)
-	} else {
-		glog.Infof("snapshot %+v to snap %+v", spec, pvSrc)
-		return pvSrc, labels, nil
+	if err != nil {
+		glog.Warningf("failed to restore snapshot %q: %v", snapshotName, err)
+		return nil, nil, err
 	}
 
-	return nil, nil, nil
+	glog.Infof("restored snapshot %q to PV %q", snapshotName, options.PVName)
+	return pvSrc, labels, nil
 }
 
 // Provision creates a storage asset and returns a PV object representing it.
