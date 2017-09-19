@@ -1,7 +1,7 @@
 Persistent Volume Snapshots in Kubernetes
 =========================================
 
-This document describes current state of persistent volume snapshot support in Kubernetes provided by external controller and provisioner. Familiarity with [Kubernetes API concepts](https://kubernetes.io/docs/concepts/) is suggested.
+This document describes current state of persistent volume snapshot support in Kubernetes provided by external controller and provisioner. Familiarity with [Kubernetes API concepts](https://kubernetes.io/docs/concepts/) is recommended.
 
 ## Introduction
 
