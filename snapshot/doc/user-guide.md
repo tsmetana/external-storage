@@ -1,13 +1,13 @@
-Persistent Volume Snapshots in Kubernetes
+Volume Snapshots in Kubernetes
 =========================================
 
-This document describes current state of persistent volume snapshot support in Kubernetes provided by external controller and provisioner. Familiarity with [Kubernetes API concepts](https://kubernetes.io/docs/concepts/) is recommended.
+This document describes current state of Volume Snapshot support in Kubernetes provided by external controller and provisioner. Familiarity with [Persistent Volumes](https://kubernetes.io/docs/concepts/storage/persistent-volumes/), [Persistent Volume Claims](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistentvolumeclaims) and [Dynamic Provisioning](http://blog.kubernetes.io/2016/10/dynamic-provisioning-and-storage-in-kubernetes.html) is recommended.
 
-## Introduction
+# Introduction
 
-Many storage systems provide the ability to create "snapshots" of a persistent volumes to protect against data loss. The external snapshot controller and provisioner provide means to use the feature in Kubernetes cluster and handle the volume snapshots through Kubernetes API.
+Many storage systems provide the ability to create "snapshots" of a persistent volume to protect against data loss. The external snapshot controller and provisioner provide means to use the feature in Kubernetes cluster and handle the volume snapshots through Kubernetes API.
 
-## Features
+# Features
 
 * Create snapshot of a `PersistentVolume` bound to a `PersistentVolumeClaim`
 * List existing `VolumeSnapshots`
@@ -18,14 +18,49 @@ Many storage systems provide the ability to create "snapshots" of a persistent v
     * GCE PD
     * HostPath
 
-## Lifecycle of a Persistent Volume Snapshot
+# Lifecycle of a Volume Snapshot and Volume Snapshot Data
 
-### Creating
+## Prerequisites
+Prerequisites for using the snapshotting features are described in sections "Persistent Volume Claim and Persistent Volume" and "Snapshot Promoter".
 
-User is able to make a snapshot of a `PersistentVolume` bound to a `PersistentVolumeClaim` by creating a new `VolumeSnapshot` object referencing the `PersistentVolumeClaim`. 
+### Persistent Volume Claim and Persistent Volume
+The user already created a Persistent Volume Claim that is bound to a Persistent Volume. The Persistent Volume type must be one of the snaphot supported Persistent Volume types.
 
-Example of the `VolumeSnapshot` object:
+### Snapshot Promoter
+An admin created a Storage Class like the one shown below:
 ```yaml
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: snapshot-promoter
+provisioner: volumesnapshot.external-storage.k8s.io/snapshot-promoter
+```
+Such Storage Class is necessary for restoring a Persistent Volume from already created Volume Snapshot and Volume Snapshot Data.
+
+## Creating
+Each `VolumeSnapshot` contains a spec and status, which is the specification and status of the Volume Snapshot.
+```yaml
+apiVersion: volume-snapshot-data.external-storage.k8s.io/v1
+kind: VolumeSnapshot
+metadata:
+  name: snapshot-demo
+spec:
+  persistentVolumeClaimName: ebs-pvc
+```
+
+* `persistentVolumeClaimName`: name of the Persistent Volume Claim that is bound to a Persistent Volume. This particular Persistent Volume will be snapshotted.
+
+Volume Snapshot Data is automatically created based on the Volume Snapshot. Relationship between Volume Snapshot and Volume Snapshot Data is similar to the relationship between Persistent Volume Claim and Persistent Volume.
+
+Depending on the Persistent Volume type the operation might go through several phases which are reflected by the Volume Snapshot status:
+1. The Volume Snapshot Data is created and is bound to the Volume Snapshot.
+2. The controller starts the snapshot operation: the snapshotted Persistent Volume might need to be frozen and the applications paused.
+3. The storage system finishes creating the snapshot (the snapshot is "cut") and the snapshotted Persistent Volume might return to normal operation. The snapshot itself is not ready yet. The last status condition is of `Created` type with status value "True"
+4. The newly created snapshot is completed and ready to use. The last status condition is of `Ready` type with status value "True"
+
+A Volume Snapshot status can be displayed as shown below:
+```yaml
+$ kubectl get volumesnapshot -o yaml
 apiVersion: volume-snapshot-data.external-storage.k8s.io/v1
   kind: VolumeSnapshot
   metadata:
@@ -52,10 +87,26 @@ apiVersion: volume-snapshot-data.external-storage.k8s.io/v1
     creationTimestamp: null
 ```
 
-The object is then processed by the snapshot controller which instructs the storage system to create snapshot of the volume and creates a representation of the snapshot: `VolumeSnapshotData` API object. Depending on the storage type the operation might go through several phases which are reflected by the `VolumeSnapshot` and `VolumeSnapshotData` status:
+## Restoring
+In order to restore a Persistent Volume from a Volume Snapshot a user creates the following Persistent Volume Claim:
+```yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: snapshot-pv-provisioning-demo
+  annotations:
+    snapshot.alpha.kubernetes.io/snapshot: snapshot-demo
+spec:
+  storageClassName: snapshot-promoter
+```
+* `annotations`: `snapshot.alpha.kubernetes.io/snapshot`: the name of the Volume Snapshot that will be restored.
+* `storageClassName`: Storage Class created by admin for restoring Volume Snapshots.
 
-1. The `VolumeSnapshot` object is created
-2. The controller starts the snapshot operation: the snapshotted volume might need to be frozen and the applications paused.
-3. The storage system finishes creating the snapshot (the snapshot is "cut") and the snapshotted volume might return to normal operation. The snapshot itself is not ready yet. The last status condition is of `Created` type with status value "True"
-4. The newly created snapshot is completed and ready to use. The last status condition is of `Ready` type with status value "True"
+A Persistent Volume will be created and bound to the Persistent Volume Claim. The process may take several minutes depending on the Persistent Volume Type.
 
+## Deleting
+A Volume Snapshot `snapshot-demo` can be deleted as shown below:
+```
+$ kubectl delete -f volumesnapshot/snapshot-demo
+```
+The Volume Snapshot Data that are bound to the Volume Snapshot are also automatically deleted.
