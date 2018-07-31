@@ -20,12 +20,12 @@
 # https://github.com/kubernetes-incubator/external-storage
 %global provider_prefix %{provider}.%{provider_tld}/%{project}/%{repo}
 %global import_path     %{provider_prefix}
-%global commit          d3c94f0a3747411812ffe5c523d6d064e7345dd3
+%global commit          1ffdb9d63c8415e752716f67d5bd3ac0f823298f
 %global shortcommit     %(c=%{commit}; echo ${c:0:7})
 
 Name:           openshift-external-storage
-Version:        0.0.2
-Release:        3.git%{shortcommit}%{?dist}
+Version:        0.0.3
+Release:        1.git%{shortcommit}%{?dist}
 Summary:        External storage plugins, provisioners, and helper libraries for OpenShift
 License:        ASL 2.0
 URL:            https://%{provider_prefix}
@@ -146,6 +146,9 @@ install -p -m 0755 \
 %doc CONTRIBUTING.md RELEASE.md README.md
 
 %changelog
+* Tue Jul 31 2018 Matthew Wong <mawong@redhat.com> - 0.0.3-1.git1ffdb9d
+- Rebase to latest upstream version
+
 * Tue May 29 2018 Tomas Smetana <tsmetana@redhat.com> - 0.0.2-3.gitd3c94f0
 - Install local-provisioners helper scripts
 
