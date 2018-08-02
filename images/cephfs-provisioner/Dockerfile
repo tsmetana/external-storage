@@ -17,6 +17,6 @@ LABEL \
         summary="CephFS dynamic PV provisioner" \
         version="v3.10.14" \
         io.openshift.tags="ceph,cephfs,dynamic,provisioner" \
-        name="openshift3/cephfs-provisioner" \
+        name="openshift3/origin-cephfs-provisioner" \
         io.openshift.expose-services="" \
         maintainer="mawong@redhat.com"
