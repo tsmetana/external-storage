@@ -15,7 +15,7 @@ LABEL \
         License="GPLv2+" \
         io.k8s.display-name="CephFS Provisioner" \
         summary="CephFS dynamic PV provisioner" \
-        version="v3.10.14" \
+        version="v3.10.0" \
         io.openshift.tags="ceph,cephfs,dynamic,provisioner" \
         name="openshift3/origin-cephfs-provisioner" \
         io.openshift.expose-services="" \
