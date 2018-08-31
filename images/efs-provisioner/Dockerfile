@@ -26,8 +26,8 @@ LABEL \
         url="https://github.com/kubernetes-incubator/external-storage/blob/master/aws/efs/README.md" \
         io.k8s.display-name="EFS Provisioner" \
         summary="AWS EFS dynamic PV provisioner" \
-        version="v3.10.34" \
+        version="v3.7.62" \
         architecture="x86_64" \
         io.openshift.tags="aws,efs,dynamic,provisioner" \
-        name="openshift3/efs-provisioner"
+        name="openshift3/origin-efs-provisioner"
 
