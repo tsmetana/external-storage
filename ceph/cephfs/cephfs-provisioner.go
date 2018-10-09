@@ -140,6 +140,9 @@ func (p *cephFSProvisioner) Provision(options controller.VolumeOptions) (*v1.Per
 	if deterministicNames {
 		cmd.Env = append(cmd.Env, "CEPH_VOLUME_GROUP="+options.PVC.Namespace)
 	}
+	if *disableCephNamespace {
+		cmd.Env = append(cmd.Env, "CEPH_FEATURE_PNAMESPACE_DISABLED=true")
+	}
 
 	output, cmdErr := cmd.CombinedOutput()
 	if cmdErr != nil {
@@ -243,6 +246,9 @@ func (p *cephFSProvisioner) Delete(volume *v1.PersistentVolume) error {
 		"CEPH_AUTH_ID=" + adminID,
 		"CEPH_AUTH_KEY=" + adminSecret,
 		"CEPH_VOLUME_ROOT=" + pvcRoot}
+	if *disableCephNamespace {
+		cmd.Env = append(cmd.Env, "CEPH_FEATURE_PNAMESPACE_DISABLED=true")
+	}
 
 	output, cmdErr := cmd.CombinedOutput()
 	if cmdErr != nil {
@@ -333,10 +339,11 @@ func (p *cephFSProvisioner) parsePVSecret(namespace, secretName string) (string,
 }
 
 var (
-	master          = flag.String("master", "", "Master URL")
-	kubeconfig      = flag.String("kubeconfig", "", "Absolute path to the kubeconfig")
-	id              = flag.String("id", "", "Unique provisioner identity")
-	secretNamespace = flag.String("secret-namespace", "", "Namespace secrets will be created in (default: '', created in each PVC's namespace)")
+	master               = flag.String("master", "", "Master URL")
+	kubeconfig           = flag.String("kubeconfig", "", "Absolute path to the kubeconfig")
+	id                   = flag.String("id", "", "Unique provisioner identity")
+	secretNamespace      = flag.String("secret-namespace", "", "Namespace secrets will be created in (default: '', created in each PVC's namespace)")
+	disableCephNamespace = flag.Bool("disable-ceph-namespace", false, "Disable Ceph namespace support")
 )
 
 func main() {
