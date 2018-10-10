@@ -25,7 +25,7 @@
 
 Name:           openshift-external-storage
 Version:        0.0.3
-Release:        1.git%{shortcommit}%{?dist}
+Release:        2.git%{shortcommit}%{?dist}
 Summary:        External storage plugins, provisioners, and helper libraries for OpenShift
 License:        ASL 2.0
 URL:            https://%{provider_prefix}
@@ -74,12 +74,6 @@ Requires: ceph-common python-cephfs
 %description cephfs-provisioner
 Provisioner for CephFS volumes.
 
-%package manila-provisioner
-Summary: Provisioner for OpenStack Manila
-
-%description manila-provisioner
-Provisions volumes using OpenStack Manila API.
-
 %prep
 %setup -q -n %{repo}-%{commit}
 %patch0 -p1
@@ -95,7 +89,6 @@ export GOPATH=$(pwd):$(pwd)/repo-infra/vendor:%{gopath}
 %gobuild -o bin/local-volume/provisioner/snapshot-provisioner %{import_path}/snapshot/cmd/snapshot-pv-provisioner
 %gobuild -o bin/cephfs/provisioner/cephfs-provisioner %{import_path}/ceph/cephfs
 cp src/%{import_path}/ceph/cephfs/cephfs_provisioner/cephfs_provisioner.py bin/cephfs/provisioner/
-%gobuild -o bin/openstack-manila/provisioner/manila-provisioner %{import_path}/openstack-sharedfilesystems/cmd/manila-provisioner
 
 %install
 install -d -p %{buildroot}%{_bindir}
@@ -107,7 +100,6 @@ install -p -m 0755 bin/local-volume/provisioner/snapshot-provisioner %{buildroot
 install -p -m 0755 bin/cephfs/provisioner/cephfs-provisioner %{buildroot}%{_bindir}
 # FIXME: The path to the helper script is hard-coded in the binary
 install -p -m 0755 bin/cephfs/provisioner/cephfs_provisioner.py %{buildroot}%{_prefix}/local/bin/
-install -p -m 0755 bin/openstack-manila/provisioner/manila-provisioner %{buildroot}%{_bindir}
 mkdir -p %{buildroot}%{_libexecdir}/%{name}-local-provisioner/scripts
 install -p -m 0755 \
 	src/%{import_path}/local-volume/provisioner/deployment/docker/scripts/* \
@@ -140,12 +132,11 @@ install -p -m 0755 \
 %license LICENSE
 %doc CONTRIBUTING.md RELEASE.md README.md
 
-%files manila-provisioner
-%{_bindir}/manila-provisioner
-%license LICENSE
-%doc CONTRIBUTING.md RELEASE.md README.md
 
 %changelog
+* Fri Oct 12 2018 Tomas Smetana <tsmetana@redhat.com> - 0.0.3-2
+* Update for the new CI
+
 * Tue Jul 31 2018 Matthew Wong <mawong@redhat.com> - 0.0.3-1.git1ffdb9d
 - Rebase to latest upstream version
 
