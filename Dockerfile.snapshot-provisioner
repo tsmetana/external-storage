@@ -1,0 +1,9 @@
+FROM openshift/origin-release:golang-1.10 AS builder
+COPY . /go/src/github.com/kubernetes-incubator/external-storage
+RUN cd /go/src/github.com/kubernetes-incubator/external-storage/snapshot && \
+    make provisioner
+
+FROM openshift/origin-base
+COPY --from=builder /go/src/github.com/kubernetes-incubator/external-storage/snapshot/_output/bin/snapshot-provisioner /usr/bin
+
+ENTRYPOINT ["/usr/bin/snapshot-provisioner"]
